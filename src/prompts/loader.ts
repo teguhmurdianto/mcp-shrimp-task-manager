@@ -1,6 +1,6 @@
 /**
- * prompt 載入器
- * 提供從環境變數載入自定義 prompt 的功能
+ * Prompt Loader
+ * Provides functionality to load custom prompts from environment variables
  */
 
 import fs from "fs";
@@ -20,52 +20,52 @@ function processEnvString(input: string | undefined): string {
 }
 
 /**
- * 載入 prompt，支援環境變數自定義
- * @param basePrompt 基本 prompt 內容
- * @param promptKey prompt 的鍵名，用於生成環境變數名稱
- * @returns 最終的 prompt 內容
+ * Loads a prompt, supporting environment variable customization
+ * @param basePrompt The base prompt content
+ * @param promptKey The key name for the prompt, used to generate the environment variable name
+ * @returns The final prompt content
  */
 export function loadPrompt(basePrompt: string, promptKey: string): string {
-  // 轉換為大寫，作為環境變數的一部分
+  // Convert to uppercase as part of the environment variable
   const envKey = promptKey.toUpperCase();
 
-  // 檢查是否有替換模式的環境變數
+  // Check for override environment variable
   const overrideEnvVar = `MCP_PROMPT_${envKey}`;
   if (process.env[overrideEnvVar]) {
-    // 使用環境變數完全替換原始 prompt
+    // Completely replace the original prompt with the environment variable
     return processEnvString(process.env[overrideEnvVar]);
   }
 
-  // 檢查是否有追加模式的環境變數
+  // Check for append environment variable
   const appendEnvVar = `MCP_PROMPT_${envKey}_APPEND`;
   if (process.env[appendEnvVar]) {
-    // 將環境變數內容追加到原始 prompt 後
+    // Append the environment variable content after the original prompt
     return `${basePrompt}\n\n${processEnvString(process.env[appendEnvVar])}`;
   }
 
-  // 如果沒有自定義，則使用原始 prompt
+  // If no custom content, use the original prompt
   return basePrompt;
 }
 
 /**
- * 生成包含動態參數的 prompt
- * @param promptTemplate prompt 模板
- * @param params 動態參數
- * @returns 填充參數後的 prompt
+ * Generates a prompt with dynamic parameters
+ * @param promptTemplate The prompt template
+ * @param params Dynamic parameters
+ * @returns The prompt with parameters filled in
  */
 export function generatePrompt(
   promptTemplate: string,
   params: Record<string, any> = {}
 ): string {
-  // 使用簡單的模板替換方法，將 {paramName} 替換為對應的參數值
+  // Use simple template replacement to replace {paramName} with corresponding parameter values
   let result = promptTemplate;
 
   Object.entries(params).forEach(([key, value]) => {
-    // 如果值為 undefined 或 null，使用空字串替換
+    // If the value is undefined or null, replace with an empty string
     const replacementValue =
       value !== undefined && value !== null ? String(value) : "";
 
-    // 使用正則表達式替換所有匹配的佔位符
+    // Use regular expression to replace all matching placeholders
     const placeholder = new RegExp(`\\{${key}\\}`, "g");
     result = result.replace(placeholder, replacementValue);
   });
@@ -74,10 +74,10 @@ export function generatePrompt(
 }
 
 /**
- * 從模板載入 prompt
- * @param templatePath 相對於模板集根目錄的模板路徑 (e.g., 'chat/basic.md')
- * @returns 模板內容
- * @throws Error 如果找不到模板文件
+ * Loads a prompt from a template
+ * @param templatePath The template path relative to the template set root directory (e.g., 'chat/basic.md')
+ * @returns The template content
+ * @throws Error if the template file is not found
  */
 export function loadPromptFromTemplate(templatePath: string): string {
   const templateSetName = process.env.TEMPLATES_USE || "en";
@@ -85,11 +85,11 @@ export function loadPromptFromTemplate(templatePath: string): string {
   const builtInTemplatesBaseDir = __dirname;
 
   let finalPath = "";
-  const checkedPaths: string[] = []; // 用於更詳細的錯誤報告
+  const checkedPaths: string[] = []; // For more detailed error reporting
 
-  // 1. 檢查 DATA_DIR 中的自定義路徑
+  // 1. Check for custom path in DATA_DIR
   if (dataDir) {
-    // path.resolve 可以處理 templateSetName 是絕對路徑的情況
+    // path.resolve can handle cases where templateSetName is an absolute path
     const customFilePath = path.resolve(dataDir, templateSetName, templatePath);
     checkedPaths.push(`Custom: ${customFilePath}`);
     if (fs.existsSync(customFilePath)) {
@@ -97,9 +97,9 @@ export function loadPromptFromTemplate(templatePath: string): string {
     }
   }
 
-  // 2. 如果未找到自定義路徑，檢查特定的內建模板目錄
+  // 2. If custom path not found, check specific built-in template directory
   if (!finalPath) {
-    // 假設 templateSetName 對於內建模板是 'en', 'zh' 等
+    // Assume templateSetName is 'en', 'zh', etc. for built-in templates
     const specificBuiltInFilePath = path.join(
       builtInTemplatesBaseDir,
       `templates_${templateSetName}`,
@@ -111,7 +111,7 @@ export function loadPromptFromTemplate(templatePath: string): string {
     }
   }
 
-  // 3. 如果特定的內建模板也未找到，且不是 'en' (避免重複檢查)
+  // 3. If specific built-in template not found, and not 'en' (to avoid duplicate checks)
   if (!finalPath && templateSetName !== "en") {
     const defaultBuiltInFilePath = path.join(
       builtInTemplatesBaseDir,
@@ -124,7 +124,7 @@ export function loadPromptFromTemplate(templatePath: string): string {
     }
   }
 
-  // 4. 如果所有路徑都找不到模板，拋出錯誤
+  // 4. If template not found in any path, throw error
   if (!finalPath) {
     throw new Error(
       `Template file not found: '${templatePath}' in template set '${templateSetName}'. Checked paths:\n - ${checkedPaths.join(
@@ -133,6 +133,6 @@ export function loadPromptFromTemplate(templatePath: string): string {
     );
   }
 
-  // 5. 讀取找到的文件
+  // 5. Read the found file
   return fs.readFileSync(finalPath, "utf-8");
 }
